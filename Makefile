@@ -1,20 +1,20 @@
 DEPS_ARGS ?=
 
 deps:
-	sh scripts/install_deps.sh $(DEPS_ARGS)
+	bash scripts/install_deps.sh $(DEPS_ARGS)
 
 release:
-	sh build.sh release
+	bash build.sh release
 
 install: release
-	sh scripts/install_as_pylib.sh
+	bash scripts/install_as_pylib.sh
 
 develop:
-	sh build.sh develop
-	sh scripts/install_as_pylib.sh
+	bash build.sh develop
+	bash scripts/install_as_pylib.sh
 
 test: proto develop
-	sh build.sh test
+	bash build.sh test
 
 clean:
 	rm -rf build
