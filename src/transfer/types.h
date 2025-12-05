@@ -6,19 +6,14 @@
 #include <unordered_map>
 #include <utility>
 
-#include <utrans.h>
-
 #include <infiniband/verbs.h>
 
+#include "common/rdma_type.h"
 #include "core/atensor.h"
 #include "core/shardedkey.h"
 #include "protocol/messages.h"
 
 namespace astate {
-
-// struct RemoteContext {
-//     utrans_qp_ctx* qp_ctx{nullptr};
-// };
 
 struct RemoteAddress {
     std::string host;

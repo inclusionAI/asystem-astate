@@ -10,13 +10,11 @@
 #include <thread>
 #include <unordered_map>
 
-#include <utrans.h>
-#include <utrans_internal.h>
-
 #include <spdlog/spdlog.h>
 
 #include "common/numa_aware_allocator.h"
 #include "common/option.h"
+#include "common/rdma_type.h"
 #include "core/atensor.h"
 #include "transfer/types.h"
 #include "transport/base_transport.h"

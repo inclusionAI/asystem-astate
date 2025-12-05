@@ -68,59 +68,17 @@ make develop      # build in develop mode + install as Python library
 make test
 ```
 
-## Simple Python Usage Example
+## Simple Usage Example
 
-``` python
-import torch
-from astate import create_memory_table
-from astate.utils import create_sharded_key
+> The internal library currently only supports RDMA NICs and does not support the use of soft-RoCE (TCP). A TCP-based demo will be tested after the integration of UCX.
 
-def main():
-    """Basic Astate example."""
-    print("🚀 Astate Demo")
+``` bash
+# start train process
+cd python/example
+bash setup_trainer_env.sh
 
-    # 1. Create a table
-    table = create_memory_table("demo_table")
-    print(f"✅ Created table: {table}")
-
-    # 2. Store tensors
-    tensor1 = torch.randn(3, 4)
-    tensor2 = torch.ones(2, 2)
-
-    sharded_key1 = create_sharded_key("weights", [3, 4], [0, 0])
-    sharded_key2 = create_sharded_key("biases", [2, 2], [0, 0])
-
-    table.put(seq_id=1, key=sharded_key1, tensor=tensor1)
-    table.put(seq_id=1, key=sharded_key2, tensor=tensor2)
-    print("✅ Stored 2 tensors")
-
-    # 3. Retrieve tensors
-    retrieved1 = table.get(seq_id=1, key=sharded_key1, 
-                          tensor=torch.randn(3, 4))
-    retrieved2 = table.get(seq_id=1, key=sharded_key2,
-                          tensor=torch.randn(2, 2))
-
-    print(f"✅ Retrieved weights: {retrieved1.shape}")
-    print(f"✅ Retrieved biases: {retrieved2.shape}")
-
-    # 4. Batch operations
-    batch_tensors = {
-        "tensor_a": torch.randn(5, 5),
-        "tensor_b": torch.randn(5, 5)
-    }
-
-    # Batch store
-    tensor_pairs = [(k, v) for k, v in batch_tensors.items()]
-    table.multi_put(seq_id=2, tensor_pairs=tensor_pairs)
-
-    # Batch retrieve
-    results = table.multi_get(seq_id=2, tensor_pairs=tensor_pairs)
-    print(f"✅ Batch retrieved {len(results)} tensors")
-
-    print("🎉 Demo completed!")
-
-if __name__ == "__main__":
-    main()
+# start infer process
+bash setup_infer_env.sh
 ```
 
 Typical usage in RL:
