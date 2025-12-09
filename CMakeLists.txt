@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 option(PREFER_CLANG "Prefer clang/clang++ when present" ON)
 option(USE_LLD "Use lld when using Clang and lld exists" ON)
 option(USE_MIMALLOC "Use mimalloc memory allocator" ON)
+option(USE_ASTATE_RDMA_IMPL "Use RDMA implementation self backend" OFF)
 
 if(NOT CMAKE_C_COMPILER AND NOT CMAKE_CXX_COMPILER AND PREFER_CLANG)
   find_program(CLANG_C   NAMES clang)
@@ -36,8 +37,9 @@ project(Astate
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
 message(STATUS "Compiler picked: ${_picked} (C: ${CMAKE_C_COMPILER}  CXX: ${CMAKE_CXX_COMPILER})")
+message(STATUS "USE_ASTATE_RDMA_IMPL = ${ASTATE_RDMA_IMPL}")
+
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND USE_LLD)
   find_program(LLD_EXE NAMES lld ld.lld )

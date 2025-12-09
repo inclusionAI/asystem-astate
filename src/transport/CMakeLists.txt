@@ -13,7 +13,21 @@ set_target_properties(astate_transport PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-target_link_libraries(astate_transport PUBLIC ${ASTATE_COMMON_DEPS} astate_common astate_protocol astate_utrans)
+target_link_libraries(astate_transport PUBLIC
+  ${ASTATE_COMMON_DEPS}
+  astate_common
+  astate_protocol
+)
+
+if(USE_ASTATE_RDMA_IMPL)
+  target_link_libraries(astate_transport PUBLIC
+    astate_utrans
+  )
+else()
+  target_link_libraries(astate_transport PUBLIC
+    utrans
+  )
+endif()
 
 target_include_directories(astate_transport
     PUBLIC

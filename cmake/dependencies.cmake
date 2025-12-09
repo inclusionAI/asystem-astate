@@ -458,6 +458,29 @@ set(ASTATE_PYTHON_DEPS
     pybind11::pybind11
 )
 
+if(USE_ASTATE_RDMA_IMPL)
+    set(ASTATE_TRANSFER_DEPS
+        numa
+        ibverbs
+        UCX::ucx
+    )
+
+    add_compile_definitions(
+        ASTATE_RDMA_BACKEND_UCX=1
+    )
+else()
+    set(ASTATE_TRANSFER_DEPS
+        numa
+        ibverbs
+        utrans
+    )
+
+    add_compile_definitions(
+        ASTATE_RDMA_BACKEND_UTRANS=1
+    )
+endif()
+
+
 set(ASTATE_TRANSFER_DEPS
     numa
     ibverbs

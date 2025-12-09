@@ -15,8 +15,17 @@ target_link_libraries(astate_transfer PUBLIC
   astate_common
   astate_protocol
   astate_discovery
-  astate_utrans
 )
+
+if(USE_ASTATE_RDMA_IMPL)
+  target_link_libraries(astate_transfer PUBLIC
+    astate_utrans
+  )
+else()
+  target_link_libraries(astate_transfer PUBLIC
+    utrans
+  )
+endif()
 
 target_include_directories(astate_transfer
     PUBLIC

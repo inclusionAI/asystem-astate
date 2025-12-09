@@ -11,8 +11,6 @@
 #include <thread>
 
 #include <unistd.h>
-#include <utrans.h>
-#include <utrans_define.h>
 
 #include <spdlog/spdlog.h>
 
@@ -20,6 +18,7 @@
 #include "common/gpu_topology_manager.h"
 #include "common/network_utils.h"
 #include "common/option.h"
+#include "common/rdma_type.h"
 #include "common/retry/counting_retry.h"
 #include "common/retry/retry_utils.h"
 #include "transport/base_transport.h"

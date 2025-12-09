@@ -21,6 +21,10 @@ STAMP_DIR="${INSTALL_PREFIX}/.dep_stamps"
 
 mkdir -p "${INSTALL_PREFIX}" "${WORK_DIR}" "${STAMP_DIR}"
 
+UTRANS_PKG_DIR="${PARENT_DIR}/utrans_pkg"
+LIBUTRANS_DEB_PATH="${UTRANS_PKG_DIR}/libutrans_0.0.4-8_amd64.deb"
+LIBUTRANS_RPM_PATH="${UTRANS_PKG_DIR}/libutrans-0.0.4-7.x86_64.rpm"
+
 # Ensure our install prefix is visible to pkg-config (for brpc, folly, etc.)
 export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/pkgconfig:${INSTALL_PREFIX}/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH:-}"
@@ -54,9 +58,10 @@ usage() {
     echo "  You can override this by passing -DCMAKE_INSTALL_PREFIX=... in cmake-options, but by default this script"
     echo "  always injects -DCMAKE_INSTALL_PREFIX=../install into CMake configuration."
     echo ""
-    echo "Usage (install system packages on Ubuntu/Debian):"
-    echo "  sudo $0 system [--use-aliyun-mirror]"
-    echo "    --use-aliyun-mirror  Use Aliyun APT mirror (will rewrite /etc/apt/sources.list)"
+    echo "System packages:"
+    echo "  On Ubuntu/Debian: this script installs apt-based build/runtime deps."
+    echo "  On CentOS/RHEL-like: this script installs yum/dnf-based build/runtime deps."
+    echo "  Option: --use-aliyun-mirror (Ubuntu/Debian only) to rewrite APT sources to Aliyun."
 }
 
 
@@ -743,10 +748,10 @@ verify_deps_in_install() {
 }
 
 # ========================
-# System-level dependencies (Ubuntu/Debian only)
+# System-level dependencies
 # ========================
 
-detect_ubuntu_like() {
+detect_os() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         OS="$ID"
@@ -761,10 +766,16 @@ detect_ubuntu_like() {
         ubuntu|debian)
             OS_TYPE="ubuntu"
             ;;
+        alinux|centos|rhel|fedora|anolis)
+            OS_TYPE="centos"
+            ;;
         *)
             case "$OS_LIKE" in
                 *debian*)
                     OS_TYPE="ubuntu"
+                    ;;
+                *rhel*|*fedora*|*centos*)
+                    OS_TYPE="centos"
                     ;;
                 *)
                     OS_TYPE="unknown"
@@ -835,6 +846,93 @@ install_system_deps_ubuntu() {
     echo "✅ System dependencies installed successfully on ${OS}."
 }
 
+install_system_deps_centos() {
+    if [ "$OS_TYPE" != "centos" ]; then
+        echo "install_system_deps_centos: OS_TYPE=${OS_TYPE}, only RHEL/CentOS-like systems are supported." >&2
+        exit 1
+    fi
+
+    local PKG_MGR
+    if command -v dnf >/dev/null 2>&1; then
+        PKG_MGR=dnf
+    else
+        PKG_MGR=yum
+    fi
+
+    echo "Installing system dependencies using ${PKG_MGR} on ${OS}..."
+
+    ${PKG_MGR} -y install epel-release || true
+
+    ${PKG_MGR} -y install \
+        cmake make automake autoconf libtool \
+        openssl-devel leveldb-devel \
+        gperftools gperftools-devel \
+        iputils telnet bc gdb pciutils \
+        numactl numactl-devel \
+        rdma-core rdma-core-devel libibverbs-devel librdmacm-devel \
+        boost1.78-devel \
+        double-conversion-devel \
+        zlib-devel bzip2-devel lz4-devel snappy-devel \
+        libdwarf-devel binutils-devel libaio-devel liburing-devel \
+        libsodium-devel libunwind-devel \
+        clang lld clang-tools-extra gcc gcc-c++
+
+    echo "✅ System dependencies installed successfully on ${OS}."
+}
+
+install_libutrans() {
+    echo "Installing libutrans package..."
+
+    case "$OS_TYPE" in
+        ubuntu)
+            if [ ! -f "${LIBUTRANS_DEB_PATH}" ]; then
+                echo "⚠️  libutrans DEB package not found at ${LIBUTRANS_DEB_PATH}, skip installing libutrans on Ubuntu."
+                return 0
+            fi
+
+            echo "Installing libutrans from local DEB: ${LIBUTRANS_DEB_PATH}"
+            dpkg -i "${LIBUTRANS_DEB_PATH}" || true
+
+            apt --fix-broken install -y
+
+            if [ -f /lib/x86_64-linux-gnu/libibverbs.so.1 ]; then
+                echo "Creating symbolic link for libibverbs..."
+                ln -sf /lib/x86_64-linux-gnu/libibverbs.so.1 /lib/x86_64-linux-gnu/libibverbs.so
+                if [ -L /lib/x86_64-linux-gnu/libibverbs.so ]; then
+                    echo "Symbolic link created successfully:"
+                    ls -l /lib/x86_64-linux-gnu/libibverbs.so
+                else
+                    echo "Warning: Failed to create symbolic link"
+                fi
+            fi
+
+            echo "libutrans installed successfully on Ubuntu."
+            ;;
+
+        centos)
+            if [ ! -f "${LIBUTRANS_RPM_PATH}" ]; then
+                echo "⚠️  libutrans RPM package not found at ${LIBUTRANS_RPM_PATH}, skip installing libutrans on CentOS."
+                return 0
+            fi
+
+            local PKG_MGR
+            if command -v dnf >/dev/null 2>&1; then
+                PKG_MGR=dnf
+            else
+                PKG_MGR=yum
+            fi
+
+            echo "Installing libutrans from local RPM: ${LIBUTRANS_RPM_PATH} using ${PKG_MGR}..."
+            ${PKG_MGR} install -y "${LIBUTRANS_RPM_PATH}"
+            echo "libutrans installed successfully on CentOS."
+            ;;
+
+        *)
+            echo "OS_TYPE=${OS_TYPE} not supported for libutrans installation, skipping."
+            ;;
+    esac
+}
+
 # ========================
 # Main entry
 # ========================
@@ -846,14 +944,18 @@ main() {
         shift
     fi
 
-    detect_ubuntu_like
+    detect_os
     if [ "$OS_TYPE" = "ubuntu" ]; then
         if [ "$use_aliyun" -eq 1 ]; then
             setup_ubuntu_mirror_aliyun
         fi
         install_system_deps_ubuntu
+        install_libutrans
+    elif [ "$OS_TYPE" = "centos" ]; then
+        install_system_deps_centos
+        install_libutrans
     else
-        echo "Note: system package installation is only supported on Ubuntu/Debian; continuing with CMake deps only."
+        echo "Note: system package installation is only supported on Ubuntu/Debian/CentOS-like systems; continuing with CMake deps only."
     fi
 
     if [ "$#" -eq 0 ] || [ "$1" = "all" ]; then
@@ -900,5 +1002,6 @@ main() {
 
     verify_deps_in_install
 }
+
 
 main "$@"
