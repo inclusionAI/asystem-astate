@@ -1,4 +1,7 @@
 # AState: High-performance State Management for RL
+<p align="center">
+  <img alt="AState" src="docs/images/astate-logo.svg" width="640">
+</p>
 
 **AState is a general-purpose state data management system for RL workloads**. It is designed to address several core challenges in RL:
 - Low I/O efficiency in training and inference；
@@ -11,7 +14,7 @@ Within Ant Group, AState has been deployed as a key component of ASystem and is 
 
 ## System Architecture
 
-![Figure 1](doc/images/image.png)
+![Figure 1](docs/images/architecture.png)
 
 To address the challenges of large-scale RL weight synchronization, AState provides a unified weight management API for RL workloads. It can support arbitrary model architectures and various deployment and pipeline patterns, without intrusive changes or extra adaptation in the RL framework itself.
 As shown in Figure 1, AState’s architecture is organized into three layers:
